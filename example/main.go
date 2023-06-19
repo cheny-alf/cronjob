@@ -35,7 +35,7 @@ func main() {
 		Ext:        "log",
 		TimeFormat: "2006-01-02",
 	})
-	//声明redis client
+	//claim redis client
 	redisCli := redis.NewClient(&redis.Options{
 		Addr: "127.0.0.1:6379",
 	})

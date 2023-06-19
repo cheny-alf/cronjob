@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"cronjob/logger"
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -40,7 +41,7 @@ func GetAllOnlineCronConfigInfo(ctx context.Context, offset, limit int, filed []
 	//考虑limit 限制避免一次数据返回过多
 	rows, err := db.Query("SELECT task_name,cron_expr,repeatable,closed,params FROM cron_config LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		fmt.Printf("query failed, err:%v\n", err)
+		logger.Warn(fmt.Sprintf("get all online cron config info failed: %v", err))
 	}
 	// 关闭rows释放持有的数据库链接
 	defer rows.Close()
@@ -51,7 +52,7 @@ func GetAllOnlineCronConfigInfo(ctx context.Context, offset, limit int, filed []
 		var c CronConfig
 		err = rows.Scan(&c.TaskName, &c.CronExpr, &c.Repeatable, &c.Closed, &c.Params)
 		if err != nil {
-			fmt.Printf("scan failed, err:%v\n", err)
+			logger.Warn(fmt.Sprintf("scan failed: %v", err))
 		}
 		configs = append(configs, c)
 	}

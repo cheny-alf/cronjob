@@ -7,8 +7,9 @@ import (
 )
 
 func UpdateInfo(ctx context.Context, _ map[string]interface{}) error {
-	fmt.Println("大家好，执行了一次任务")
+	fmt.Println("hello world")
 	fmt.Println("do something......")
-	fmt.Println(time.Now())
+	time.Sleep(time.Second * 3)
+	fmt.Println("well done")
 	return nil
 }

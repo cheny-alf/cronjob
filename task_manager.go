@@ -15,11 +15,12 @@ import (
 )
 
 type TaskConfInfo struct {
-	Schedue    string                                              //格式 * * * * *，分别代表M、H、D、m、w，同unix crontab定义
-	Repeatable bool                                                //true 表示不管上一次调度是否执行完成，都起新任务， false表示上个任务退出之前，不再起新任务
-	Closed     bool                                                //任务是否关闭, 暴漏给外部可以关闭cron任务
-	Params     map[string]interface{}                              //任务执行参数
-	CallBack   func(context.Context, map[string]interface{}) error //回调函数
+	Schedue    string //format: * * * * *，represent the M, H, D, M, w, with Unix crontab definition
+	Repeatable bool   //True Said whether or not the last time scheduling execution is completed, all new tasks，
+	//False Said before the last task, no longer the new task
+	Closed   bool                                                //whether the task is shut down,exposed to external can close the cron job
+	Params   map[string]interface{}                              //task execution parameter
+	CallBack func(context.Context, map[string]interface{}) error //callback function
 }
 
 type CronManager struct {
@@ -119,7 +120,7 @@ func (cm *CronManager) LoadConfig(ctx context.Context) {
 func (cm *CronManager) Run() {
 	defer GoRecover(cm.ctx, "cron manager run panic", true)
 	cm.LoadConfig(cm.ctx)
-	//间隔一秒执行一次任务调度
+	// To perform a task scheduling interval for a second
 	ticker := time.NewTicker(time.Second * 1)
 	defer ticker.Stop()
 	for {
@@ -132,7 +133,7 @@ func (cm *CronManager) Run() {
 	}
 }
 
-var AispaceCronLockKey = "aispace_cron_task_lock_%s_%s-%s_%s:%s"
+var CronLockKey = "cron_task_lock_%s_%s-%s_%s:%s"
 
 func (cm *CronManager) dispatch(key, value interface{}) bool {
 	defer GoRecover(cm.ctx, "cron manager dispatch panic", true)
@@ -141,7 +142,7 @@ func (cm *CronManager) dispatch(key, value interface{}) bool {
 
 	taskName := key.(string)
 	taskConf := value.(*TaskConfInfo)
-	// 检查当前时间是否需要执行
+	// Check whether the current time to execute
 	if taskConf.Closed || taskConf.CallBack == nil {
 		return true
 	}
@@ -149,36 +150,30 @@ func (cm *CronManager) dispatch(key, value interface{}) bool {
 	if !IsCronTime(curTime, strings.TrimSpace(taskConf.Schedue)) {
 		return true
 	}
-	// 检查redis锁，判断是否有任务已经在执行
-	lockKey := fmt.Sprintf(AispaceCronLockKey, taskName, strconv.Itoa(int(curTime.Month())),
+	//  Check the redis locks, judge whether there is a task has been executed
+	lockKey := fmt.Sprintf(CronLockKey, taskName, strconv.Itoa(int(curTime.Month())),
 		strconv.Itoa(curTime.Day()), strconv.Itoa(curTime.Hour()), strconv.Itoa(curTime.Minute()))
 	locker, _ := cm.redisCli.Incr(cm.ctx, lockKey).Result()
-	//加锁失败或者已被锁
+	// Lock failed or has been locked
 	if locker != 1 {
 		return true
 	}
 
 	if _, err := cm.redisCli.Expire(cm.ctx, lockKey, time.Minute).Result(); err != nil {
-		//log
 		logger.Warn(fmt.Sprintf("cron task set redis expire error:[%v]", err))
 	}
 
-	// 启动协程执行任务调度
+	// do task
 	go func(taskName string, task *TaskConfInfo) {
 		defer GoRecover(cm.ctx, "do task panic", true)
 		taskCtx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		//taskCtx = logit.WithContext(taskCtx)
-		//logit.AddMetaFields(taskCtx, logit.AutoField(logit.FieldLogID, logit.NewLogIDUint32()))
 
-		//log
 		logger.Info(fmt.Sprintf("Cron_Task_Start:[%s]", taskName))
 		errCb := task.CallBack(taskCtx, task.Params)
 		if errCb != nil {
-			//log
 			logger.Warn(fmt.Sprintf("cron task set redis expire error:[%v]", errCb))
 		}
-		//log
 		logger.Info(fmt.Sprintf("Cron_Task_End:[%s]", taskName))
 
 	}(taskName, taskConf)
