@@ -37,16 +37,13 @@ type CronConfig struct {
 	Mtime        int    `gorm:"column:mtime;NOT NULL"`                // 修改时间
 }
 
-func GetAllOnlineCronConfigInfo(ctx context.Context, offset, limit int, filed []string) ([]CronConfig, error) {
-	//考虑limit 限制避免一次数据返回过多
+func GetAllOnlineCronConfigInfo(ctx context.Context, offset, limit int) ([]CronConfig, error) {
 	rows, err := db.Query("SELECT task_name,cron_expr,repeatable,closed,params FROM cron_config LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
 		logger.Warn(fmt.Sprintf("get all online cron config info failed: %v", err))
 	}
-	// 关闭rows释放持有的数据库链接
 	defer rows.Close()
 
-	// 循环读取结果集中的数据
 	var configs []CronConfig
 	for rows.Next() {
 		var c CronConfig

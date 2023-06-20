@@ -75,7 +75,7 @@ func (cm *CronManager) LoadConfig(ctx context.Context) {
 	page, errorGetCount := 0, 0
 	for {
 		offset := page * GetCronConfigLimit
-		taskConfList, err := mysql.GetAllOnlineCronConfigInfo(ctx, offset, GetCronConfigLimit, nil)
+		taskConfList, err := mysql.GetAllOnlineCronConfigInfo(ctx, offset, GetCronConfigLimit)
 		if err != nil {
 			logger.Warn(fmt.Sprintf("get all online cron task config faild err:[%v]", err))
 			page++
