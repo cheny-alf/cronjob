@@ -7,11 +7,11 @@ import (
 )
 
 /*
-	curTime: 当前时间
-	schedue: crontab表达式: 秒 分钟 小时 日 月 星期
-	判断当前时间是否满足crontab表达式
+IsCronTime
+curTime: current time
+schedue: crontab expression: seconds/minutes/hours/day/week/month
+Determine whether the current time meet crontab expression
 */
-
 func IsCronTime(curTime time.Time, schedue string) bool {
 	curSec := curTime.Second()
 	curMin := curTime.Minute()
@@ -30,9 +30,10 @@ func IsCronTime(curTime time.Time, schedue string) bool {
 }
 
 /*
-schedule: crontab 表达式拆分的对应 秒/分钟/小时/日/月/星期
-curTime: 当前时间的 秒/分钟/小时/日/月/星期
-判断当前时间是否命中crontab时间格式
+CheckCronKey
+schedule: crontab Expression of split corresponding seconds/minutes/hours/day/week/month
+curTime: The current time of seconds/minutes/hours/day/week/month
+Determine whether the current time a crontab time format
 */
 func CheckCronKey(schedule string, curTime int) bool {
 	if strings.Contains(schedule, "/") {
